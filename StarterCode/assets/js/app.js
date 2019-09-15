@@ -1,14 +1,14 @@
-// setting the width and height of container
 let width = parseInt(d3.select("#scatter").style("width"));
-let height = width - width / 5;
 
-// setting margin, text and label spacing
+let height = width - width / 3.9;
+
 let margin = 20;
 
-let labelSpace = 110;
-let bottomText = 40;
-let leftText = 40;
-// creating svg container in HTML
+let labelArea = 110;
+
+let tPadBot = 40;
+let tPadLeft = 40;
+
 let svg = d3
   .select("#scatter")
   .append("svg")
@@ -16,94 +16,88 @@ let svg = d3
   .attr("height", height)
   .attr("class", "chart");
 
-// circle radius according to width
-let circleRad;
-function circleRadius() {
-  if (width <= 535) {
-    circleRad = 5;
+let circleRadius;
+function circleGet() {
+  if (width <= 530) {
+    circleRadius = 5;
   } else {
-    circleRad = 10;
+    circleRadius = 10;
   }
 }
-circleRadius();
+circleGet();
 
-// group for bottom axis labels(BOTTOM AXIS) \\
-svg.append("g").attr("class", "xLabelText");
+svg.append("g").attr("class", "xText");
 
-let transformX = (width - labelSpace) / 2 + labelSpace;
-let transformY = height - margin - bottomText;
+let xText = d3.select(".xText");
 
-let xLabelText = d3.select(".xLabelText");
-
-// transform xLabelText(NEED A FIX HERE FOR POSITIONING[BELOW IN TRANSFORM])
-function xLabelTextTransform() {
-  xLabelText.attr("tranform", `translate(${transformX},${transformY}`);
+function xTextRefresh() {
+  xText.attr(
+    "transform",
+    "translate(" +
+      ((width - labelArea) / 2 + labelArea) +
+      ", " +
+      (height - margin - tPadBot) +
+      ")"
+  );
 }
-xLabelTextTransform();
+xTextRefresh();
 
-// append text and assign classes to svg y coordinates using xLabelText
-// Poverty
-xLabelText
+xText
   .append("text")
-  .attr("y", transformY + 30)
-  .attr("x", transformX)
+  .attr("y", -30)
   .attr("data-name", "poverty")
   .attr("data-axis", "x")
   .attr("class", "aText active x")
   .text("In Poverty (%)");
-// Age
-xLabelText
+
+xText
   .append("text")
-  .attr("y", transformY)
-  .attr("x", transformX)
+  .attr("y", 0)
   .attr("data-name", "age")
   .attr("data-axis", "x")
   .attr("class", "aText inactive x")
   .text("Age (Median)");
-// Income
-xLabelText
+
+xText
   .append("text")
-  .attr("y", transformY - 30)
-  .attr("x", transformX)
+  .attr("y", 30)
   .attr("data-name", "income")
   .attr("data-axis", "x")
   .attr("class", "aText inactive x")
   .text("Household Income (Median)");
 
-// group for left axis labels(LEFT AXIS) \\
-let leftTextX = margin + leftText;
-let leftTextY = (height + labelSpace) / 2 - labelSpace;
+let leftTextX = margin + tPadLeft;
+let leftTextY = (height + labelArea) / 2 - labelArea;
 
-svg.append("g").attr("class", "yLabelText");
+svg.append("g").attr("class", "yText");
 
-let yLabelText = d3.select(".yLabelText");
+let yText = d3.select(".yText");
 
-function yLabelTextTransform() {
-  yLabelText.attr(
+function yTextRefresh() {
+  yText.attr(
     "transform",
-    "translate(" + leftTextX + "," + leftTextY + "), rotate(-90)"
+    "translate(" + leftTextX + ", " + leftTextY + ")rotate(-90)"
   );
 }
-yLabelTextTransform();
+yTextRefresh();
 
-// append the text
-// Obesity
-yLabelText
+yText
   .append("text")
   .attr("y", -30)
   .attr("data-name", "obesity")
   .attr("data-axis", "y")
   .attr("class", "aText active y")
   .text("Obese (%)");
-// Smokes
-yLabelText
+
+yText
   .append("text")
-  .attr("y", 0)
+  .attr("x", 0)
   .attr("data-name", "smokes")
+  .attr("data-axis", "y")
   .attr("class", "aText inactive y")
   .text("Smokes (%)");
-// Lacking Healthcare
-yLabelText
+
+yText
   .append("text")
   .attr("y", 30)
   .attr("data-name", "healthcare")
@@ -111,13 +105,11 @@ yLabelText
   .attr("class", "aText inactive y")
   .text("Lacks Healthcare (%)");
 
-// Import CSV data file \\
-d3.csv("../assets/data/data.csv", function(error, healthData) {
-  if (error) throw error;
-  console.log(healthData);
+d3.csv("assets/data/data.csv").then(function(data) {
+  visualize(data);
 });
 
-function chart(theData) {
+function visualize(theData) {
   let curX = "poverty";
   let curY = "obesity";
 
@@ -126,46 +118,44 @@ function chart(theData) {
   let yMin;
   let yMax;
 
-  function toolTip(tT) {
-    d3.tip()
-      .attr("class", "d3-tip")
-      .offset([40, -60])
-      .html(function(data) {
-        console.log(data);
-        let x;
-        let state = "<div>" + data.state + "%</div>";
-        let y = "<div>" + curY + ": " + data[curY] + "%</div>";
-        if (curX === "poverty") {
-          x - "<div>" + curX + ": " + data[curX] + "%</div>";
-        } else {
-          x =
-            "<div>" +
-            curX +
-            ": " +
-            parseFloat(d[curX]).toLocaleString("en") +
-            "</div>";
-        }
-        return state + x + y;
-      });
-  }
-
+  let toolTip = d3
+    .tip()
+    .attr("class", "d3-tip")
+    .offset([40, -60])
+    .html(function(d) {
+      console.log(d);
+      let theX;
+      let theState = "<div>" + d.state + "</div>";
+      let theY = "<div>" + curY + ": " + d[curY] + "%</div>";
+      if (curX === "poverty") {
+        theX = "<div>" + curX + ": " + d[curX] + "%</div>";
+      } else {
+        theX =
+          "<div>" +
+          curX +
+          ": " +
+          parseFloat(d[curX]).toLocaleString("en") +
+          "</div>";
+      }
+      return theState + theX + theY;
+    });
   svg.call(toolTip);
 
   function xMinMax() {
-    xMin = d3.min(theData, function(data) {
-      return parseFloat(data[curX]) * 0.9;
+    xMin = d3.min(theData, function(d) {
+      return parseFloat(d[curX]) * 0.9;
     });
-    xMax = d3.max(theData, function(data) {
-      return parseFloat(data[curX]) * 1.1;
+    xMax = d3.max(theData, function(d) {
+      return parseFloat(d[curX]) * 1.1;
     });
   }
 
   function yMinMax() {
-    yMin = d3.min(theData, function(data) {
-      return parseFloat(data[curY]) * 0.9;
+    yMin = d3.min(theData, function(d) {
+      return parseFloat(d[curY]) * 0.9;
     });
-    yMax = d3.max(theData, function(data) {
-      return parseFloat(data[curY]) * 1.1;
+    yMax = d3.max(theData, function(d) {
+      return parseFloat(d[curY]) * 1.1;
     });
   }
 
@@ -188,45 +178,201 @@ function chart(theData) {
     .range([margin + labelArea, width - margin]);
   let yScale = d3
     .scaleLinear()
-    .doman([yMin, yMax])
+    .domain([yMin, yMax])
     .range([height - margin - labelArea, margin]);
 
   let xAxis = d3.axisBottom(xScale);
   let yAxis = d3.axisLeft(yScale);
+
+  function tickCount() {
+    if (width <= 500) {
+      xAxis.ticks(5);
+      yAxis.ticks(5);
+    } else {
+      xAxis.ticks(10);
+      yAxis.ticks(10);
+    }
+  }
+  tickCount();
+
+  svg
+    .append("g")
+    .call(xAxis)
+    .attr("class", "xAxis")
+    .attr("transform", "translate(0," + (height - margin - labelArea) + ")");
+  svg
+    .append("g")
+    .call(yAxis)
+    .attr("class", "yAxis")
+    .attr("transform", "translate(" + (margin + labelArea) + ", 0)");
+
+  let theCircles = svg
+    .selectAll("g theCircles")
+    .data(theData)
+    .enter();
+
+  theCircles
+    .append("circle")
+    .attr("cx", function(d) {
+      return xScale(d[curX]);
+    })
+    .attr("cy", function(d) {
+      return yScale(d[curY]);
+    })
+    .attr("r", circleRadius)
+    .attr("class", function(d) {
+      return "stateCircle " + d.abbr;
+    })
+    .on("mouseover", function(d) {
+      toolTip.show(d, this);
+      d3.select(this).style("stroke", "#323232");
+    })
+    .on("mouseout", function(d) {
+      toolTip.hide(d);
+      d3.select(this).style("stroke", "#e3e3e3");
+    });
+
+  theCircles
+    .append("text")
+    .text(function(d) {
+      return d.abbr;
+    })
+    .attr("dx", function(d) {
+      return xScale(d[curX]);
+    })
+    .attr("dy", function(d) {
+      return yScale(d[curY]) + circleRadius / 2.5;
+    })
+    .attr("font-size", circleRadius)
+    .attr("class", "stateText")
+    .on("mouseover", function(d) {
+      toolTip.show(d);
+      d3.select("." + d.abbr).style("stroke", "#323232");
+    })
+    .on("mouseout", function(d) {
+      toolTip.hide(d);
+      d3.select("." + d.abbr).style("stroke", "#e3e3e3");
+    });
+
+  d3.selectAll(".aText").on("click", function() {
+    let self = d3.select(this);
+
+    if (self.classed("inactive")) {
+      let axis = self.attr("data-axis");
+      let name = self.attr("data-name");
+
+      if (axis === "x") {
+        curX = name;
+
+        xMinMax();
+
+        xScale.domain([xMin, xMax]);
+
+        svg
+          .select(".xAxis")
+          .transition()
+          .duration(300)
+          .call(xAxis);
+
+        d3.selectAll("circle").each(function() {
+          d3.select(this)
+            .transition()
+            .attr("cx", function(d) {
+              return xScale(d[curX]);
+            })
+            .duration(300);
+        });
+
+        d3.selectAll(".stateText").each(function() {
+          d3.select(this)
+            .transition()
+            .attr("dx", function(d) {
+              return xScale(d[curX]);
+            })
+            .duration(300);
+        });
+
+        labelChange(axis, self);
+      } else {
+        curY = name;
+
+        yMinMax();
+
+        yScale.domain([yMin, yMax]);
+
+        svg
+          .select(".yAxis")
+          .transition()
+          .duration(300)
+          .call(yAxis);
+
+        d3.selectAll("circle").each(function() {
+          d3.select(this)
+            .transition()
+            .attr("cy", function(d) {
+              return yScale(d[curY]);
+            })
+            .duration(300);
+        });
+
+        d3.selectAll(".stateText").each(function() {
+          d3.select(this)
+            .transition()
+            .attr("dy", function(d) {
+              return yScale(d[curY]) + circleRadius / 3;
+            })
+            .duration(300);
+        });
+
+        labelChange(axis, self);
+      }
+    }
+  });
+
+  d3.select(window).on("resize", resize);
+
+  function resize() {
+    width = parseInt(d3.select("#scatter").style("width"));
+    height = width - width / 3.9;
+    leftTextY = (height + labelArea) / 2 - labelArea;
+
+    svg.attr("width", width).attr("height", height);
+
+    xScale.range([margin + labelArea, width - margin]);
+    yScale.range([height - margin - labelArea, margin]);
+
+    svg
+      .select(".xAxis")
+      .call(xAxis)
+      .attr("transform", "translate(0," + (height - margin - labelArea) + ")");
+
+    svg.select(".yAxis").call(yAxis);
+
+    tickCount();
+
+    xTextRefresh();
+    yTextRefresh();
+
+    circleGet();
+
+    d3.selectAll("circle")
+      .attr("cy", function(d) {
+        return yScale(d[curY]);
+      })
+      .attr("cx", function(d) {
+        return xScale(d[curX]);
+      })
+      .attr("r", function() {
+        return circleRadius;
+      });
+
+    d3.selectAll(".stateText")
+      .attr("dy", function(d) {
+        return yScale(d[curY]) + circleRadius / 3;
+      })
+      .attr("dx", function(d) {
+        return xScale(d[curX]);
+      })
+      .attr("r", circleRadius / 3);
+  }
 }
-
-function labelChange(axis, textClicked) {
-  d3.selectAll(".aText")
-    .filter("." + axis)
-    .filter(".active")
-    .classed("active", false)
-    .classed("inactive", true);
-  textClicked.classed("inactive", false).classed("active", true);
-}
-
-// xMinMax();
-// yMinMax();
-
-// let xScale = d3
-//   .scaleLinear()
-//   .domain([xMin, xMax])
-//   .range([margin + labelSpace, width - margin]);
-
-// let yScale = d3
-//   .scaleLinear()
-//   .domain([yMin, yMax])
-//   .range([height - margin - labelSpace, margin]);
-
-// let xAxis = d3.axisBottom(xScale);
-// let yAxis = d3.axisLeft(yScale);
-
-// function tickCount() {
-//   if (width <= 500) {
-//     xAxis.ticks(5);
-//     yAxis.ricks(5);
-//   } else {
-//     xAxis.ticks(10);
-//     yAxis.ticks(10);
-//   }
-// }
-// tickCount();
